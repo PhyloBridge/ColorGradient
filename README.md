@@ -11,7 +11,7 @@
 
 In the context of plotting hyperparameter search grids, traditional visualizations show only average values, ignoring critical information about underlying distributions. **ColorGradient reveals the full story** by displaying data distributions as intuitive circular gradients, where the center represents the maximum value of the distribution and edges show the the minimal value of the distribution.
 
-Perfect for machine learning researchers who need to:
+Perfect for researchers who need to:
 
 - Compare model performance across hyperparameter grids (epochs × learning rates)
 - Visualize multiple 1D data distributions organized into a single figure with multiple rows and columns
