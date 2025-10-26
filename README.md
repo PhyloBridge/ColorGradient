@@ -2,7 +2,8 @@
 
 **Publication-ready visualization for 1D data distributions using intuitive circular color gradients**
 
-[![PyPI version](https://badge.fury.io/py/colorgradient.svg)](https://badge.fury.io/py/colorgradient)
+[![PyPI version](https://badge.fury.io/py/colorgradient.svg?v=1)](https://badge.fury.io/py/colorgradient)
+[![Downloads](https://img.shields.io/pypi/dm/colorgradient)](https://pypistats.org/packages/colorgradient)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
 
