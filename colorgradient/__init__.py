@@ -14,7 +14,7 @@ from .core import (
 	create_square_subplots,
 	DEFAULT_COLOR_SCHEMA
 )
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __all__ = [
 	'plot_gradient_grid',
 	'draw_nested_grid_subplot',

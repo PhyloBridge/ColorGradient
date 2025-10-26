@@ -5,7 +5,7 @@ LICENSE: Creative Commons Attribution-NonCommercial 4.0 (CC BY-NC 4.0)
 
 Usage:
 from colorgradient import plot_gradient_grid
-fig, axes = plot_gradient_grid(cell_data, color_schema)
+fig, axes = plot_gradient_grid(subplot_data, color_schema)
 """
 
 import warnings
@@ -81,13 +81,13 @@ def compute_grid_statistics(grid_data: Dict[Tuple[int, int], Union[List, np.ndar
 		'p25': np.full((num_rows, num_cols), np.nan),
 		'p75': np.full((num_rows, num_cols), np.nan)
 	}
-	for (row_key, col_key), data_values in grid_data.items():
+	for (grid_row_key, grid_col_key), data_values in grid_data.items():
 		if not isinstance(data_values, np.ndarray):
 			data_values = np.array(data_values)
 		data_clean = data_values[np.isfinite(data_values)]
 		if data_clean.size == 0:
 			continue
-		row_idx, col_idx = row_map[row_key], col_map[col_key]
+		row_idx, col_idx = row_map[grid_row_key], col_map[grid_col_key]
 		stats['mean'][row_idx, col_idx] = np.mean(data_clean)
 		stats['median'][row_idx, col_idx] = np.median(data_clean)
 		stats['min'][row_idx, col_idx] = np.min(data_clean)
@@ -96,7 +96,7 @@ def compute_grid_statistics(grid_data: Dict[Tuple[int, int], Union[List, np.ndar
 		stats['p75'][row_idx, col_idx] = np.percentile(data_clean, 75)
 	return stats
 
-def find_best_cells_in_grid(stats_grids: Dict[str, np.ndarray], border_configs: Dict[str, Dict]) -> Dict[str, Tuple[int, int]]:
+def find_best_cells_in_subplot(stats_grids: Dict[str, np.ndarray], border_configs: Dict[str, Dict]) -> Dict[str, Tuple[int, int]]:
 	"""Find local best cells for each enabled border type in a single grid."""
 	best_cells = {}
 	for border_type, config in border_configs.items():
@@ -116,7 +116,7 @@ def find_best_cells_in_grid(stats_grids: Dict[str, np.ndarray], border_configs: 
 		best_cells[border_type] = (row_idx, col_idx)
 	return best_cells
 
-def find_all_best_cells_global(all_grids: Dict[int, Dict[str, np.ndarray]], border_configs: Dict[str, Dict]) -> Dict[str, Tuple[int, int, int]]:
+def find_global_best_grid_cells(all_grids: Dict[int, Dict[str, np.ndarray]], border_configs: Dict[str, Dict]) -> Dict[str, Tuple[int, int, int]]:
 	"""Find global best cells across all subplots."""
 	global_bests = {}
 	for border_type, config in border_configs.items():
@@ -163,7 +163,7 @@ def create_color_map(color_schema: Dict[float, str]) -> Tuple:
 	cmap = mcolors.LinearSegmentedColormap.from_list('custom_gradient', list(zip(positions, colors)))
 	return cmap, vmin, vmax
 
-def validate_data_range(data: Union[List, np.ndarray], color_schema: Dict[float, str], cell_name: str = "Cell"):
+def validate_data_range(data: Union[List, np.ndarray], color_schema: Dict[float, str], subplot_name: str = "Subplot"):
 	"""Validate that data values are within color schema range."""
 	if not isinstance(data, np.ndarray):
 		data = np.array(data)
@@ -172,9 +172,9 @@ def validate_data_range(data: Union[List, np.ndarray], color_schema: Dict[float,
 	schema_min = min(color_schema.keys())
 	schema_max = max(color_schema.keys())
 	if data_min < schema_min:
-		print(f"Warning: {cell_name} has minimum value {data_min:.2f} below color schema minimum {schema_min:.2f}")
+		print(f"Warning: {subplot_name} has minimum value {data_min:.2f} below color schema minimum {schema_min:.2f}")
 	if data_max > schema_max:
-		print(f"Warning: {cell_name} has maximum value {data_max:.2f} exceeding color schema maximum {schema_max:.2f}. Consider redefining schema.")
+		print(f"Warning: {subplot_name} has maximum value {data_max:.2f} exceeding color schema maximum {schema_max:.2f}. Consider redefining schema.")
 
 
 '''
@@ -184,36 +184,36 @@ def validate_data_range(data: Union[List, np.ndarray], color_schema: Dict[float,
 
 ////////////////////////////////////////////////////////////
 '''
-def calculate_grid_layout(num_cells: int, rows: int = None, cols: int = None, max_rows: int = None, max_cols: int = None) -> Tuple[int, int]:
-	"""Calculate optimal grid layout for given number of cells."""
-	if num_cells <= 0:
-		raise ValueError("Number of cells must be positive")
+def calculate_grid_layout(num_subplots: int, rows: int = None, cols: int = None, max_rows: int = None, max_cols: int = None) -> Tuple[int, int]:
+	"""Calculate optimal grid layout for given number of subplots."""
+	if num_subplots <= 0:
+		raise ValueError("Number of subplots must be positive")
 	if rows is not None and cols is not None:
-		if rows * cols < num_cells:
-			raise ValueError(f"Fixed grid {rows}x{cols} cannot fit {num_cells} cells")
+		if rows * cols < num_subplots:
+			raise ValueError(f"Fixed grid {rows}x{cols} cannot fit {num_subplots} subplots")
 		return rows, cols
 	if rows is not None:
-		calculated_cols = int(np.ceil(num_cells / rows))
+		calculated_cols = int(np.ceil(num_subplots / rows))
 		if max_cols is not None and calculated_cols > max_cols:
-			raise ValueError(f"Cannot fit {num_cells} cells in {rows} rows with max_cols={max_cols}")
+			raise ValueError(f"Cannot fit {num_subplots} subplots in {rows} rows with max_cols={max_cols}")
 		return rows, calculated_cols
 	if cols is not None:
-		calculated_rows = int(np.ceil(num_cells / cols))
+		calculated_rows = int(np.ceil(num_subplots / cols))
 		if max_rows is not None and calculated_rows > max_rows:
-			raise ValueError(f"Cannot fit {num_cells} cells in {cols} columns with max_rows={max_rows}")
+			raise ValueError(f"Cannot fit {num_subplots} subplots in {cols} columns with max_rows={max_rows}")
 		return calculated_rows, cols
-	default_cols = min(3, num_cells)
+	default_cols = min(3, num_subplots)
 	if max_cols is not None:
 		default_cols = min(default_cols, max_cols)
-	calculated_rows = int(np.ceil(num_cells / default_cols))
+	calculated_rows = int(np.ceil(num_subplots / default_cols))
 	if max_rows is not None and calculated_rows > max_rows:
-		default_cols = int(np.ceil(num_cells / max_rows))
+		default_cols = int(np.ceil(num_subplots / max_rows))
 		calculated_rows = max_rows
 	return calculated_rows, default_cols
 
-def create_square_subplots(rows: int, cols: int, figsize_per_cell: float = 4.0) -> Tuple:
+def create_square_subplots(rows: int, cols: int, figsize_per_subplot: float = 4.0) -> Tuple:
 	"""Create matplotlib figure with square subplots."""
-	figsize = (cols * figsize_per_cell, rows * figsize_per_cell)
+	figsize = (cols * figsize_per_subplot, rows * figsize_per_subplot)
 	fig, axes = plt.subplots(rows, cols, figsize=figsize, squeeze=False)
 	for ax in axes.flat:
 		ax.set_aspect('equal', adjustable='box')
@@ -227,9 +227,9 @@ def create_square_subplots(rows: int, cols: int, figsize_per_cell: float = 4.0) 
 
 ////////////////////////////////////////////////////////////
 '''
-def draw_nested_grid_subplot(ax, cell_config: Dict, color_schema: Dict, cmap, vmin: float, vmax: float, resolution: int = 100, show_values: bool = False, bold_titles: bool = False, borders_to_draw: Dict[str, Tuple[int, int]] = None, border_configs: Dict[str, Dict] = None):
+def draw_nested_grid_subplot(ax, subplot_config: Dict, color_schema: Dict, cmap, vmin: float, vmax: float, resolution: int = 100, show_values: bool = False, bold_titles: bool = False, borders_to_draw: Dict[str, Tuple[int, int]] = None, border_configs: Dict[str, Dict] = None):
 	"""Draw a nested grid subplot where each cell contains circular gradients from data distributions."""
-	grid_data = cell_config.get('grid_data')
+	grid_data = subplot_config.get('grid_data')
 	if not grid_data:
 		ax.text(0.5, 0.5, 'No Data', ha='center', va='center', transform=ax.transAxes)
 		ax.set_xticks([])
@@ -248,7 +248,7 @@ def draw_nested_grid_subplot(ax, cell_config: Dict, color_schema: Dict, cmap, vm
 		if data_clean.size > 0:
 			row_idx, col_idx = row_map[row_key], col_map[col_key]
 			base_grid[row_idx, col_idx] = np.mean(data_clean)
-	cell_resolution = max(50, resolution // max(num_rows, num_cols))
+	subplot_resolution = max(50, resolution // max(num_rows, num_cols))
 	for (row_key, col_key), data_values in grid_data.items():
 		row_idx, col_idx = row_map[row_key], col_map[col_key]
 		if not isinstance(data_values, np.ndarray):
@@ -256,25 +256,25 @@ def draw_nested_grid_subplot(ax, cell_config: Dict, color_schema: Dict, cmap, vm
 		data_clean = data_values[np.isfinite(data_values)]
 		if data_clean.size == 0:
 			continue
-		gradient = create_circular_gradient(data_clean, resolution=cell_resolution)
+		gradient = create_circular_gradient(data_clean, resolution=subplot_resolution)
 		epsilon = 0.001
-		cell_extent = [col_idx - 0.5 - epsilon, col_idx + 0.5 + epsilon, row_idx + 0.5 + epsilon, row_idx - 0.5 - epsilon]
-		ax.imshow(gradient, cmap=cmap, vmin=vmin, vmax=vmax, origin='upper', extent=cell_extent, interpolation='bilinear', zorder=2)
+		subplot_extent = [col_idx - 0.5 - epsilon, col_idx + 0.5 + epsilon, row_idx + 0.5 + epsilon, row_idx - 0.5 - epsilon]
+		ax.imshow(gradient, cmap=cmap, vmin=vmin, vmax=vmax, origin='upper', extent=subplot_extent, interpolation='bilinear', zorder=2)
 	ax.set_xticks(np.arange(num_cols))
 	ax.set_yticks(np.arange(num_rows))
-	row_labels = cell_config.get('row_labels', [str(r) for r in all_rows])
-	col_labels = cell_config.get('col_labels', [str(c) for c in all_cols])
+	row_labels = subplot_config.get('row_labels', [str(r) for r in all_rows])
+	col_labels = subplot_config.get('col_labels', [str(c) for c in all_cols])
 	ax.set_xticklabels(col_labels)
 	ax.set_yticklabels(row_labels)
-	if 'xlabel' in cell_config:
-		ax.set_xlabel(cell_config['xlabel'], fontsize=10)
-	if 'ylabel' in cell_config:
-		ax.set_ylabel(cell_config['ylabel'], fontsize=10)
-	if 'title' in cell_config:
+	if 'xlabel' in subplot_config:
+		ax.set_xlabel(subplot_config['xlabel'], fontsize=10)
+	if 'ylabel' in subplot_config:
+		ax.set_ylabel(subplot_config['ylabel'], fontsize=10)
+	if 'title' in subplot_config:
 		title_kwargs = {'fontsize': 12}
 		if bold_titles:
 			title_kwargs['fontweight'] = 'bold'
-		ax.set_title(cell_config['title'], **title_kwargs)
+		ax.set_title(subplot_config['title'], **title_kwargs)
 	ax.set_xlim(-0.5, num_cols - 0.5)
 	ax.set_ylim(num_rows - 0.5, -0.5)
 	if borders_to_draw and border_configs:
@@ -282,12 +282,13 @@ def draw_nested_grid_subplot(ax, cell_config: Dict, color_schema: Dict, cmap, vm
 		border_linewidth = 2
 		for row_idx in range(num_rows):
 			for col_idx in range(num_cols):
-				cell_borders = []
+				# Borders for this specific grid cell within the subplot
+				grid_cell_borders = []
 				for border_type, coord in borders_to_draw.items():
 					if coord == (row_idx, col_idx):
-						cell_borders.append(border_type)
-				if cell_borders:
-					sorted_borders = sorted(cell_borders, key=lambda bt: list(border_configs.keys()).index(bt) if bt in border_configs else 999)
+						grid_cell_borders.append(border_type)
+				if grid_cell_borders:
+					sorted_borders = sorted(grid_cell_borders, key=lambda bt: list(border_configs.keys()).index(bt) if bt in border_configs else 999)
 					for inset_index, border_type in enumerate(sorted_borders):
 						inset_amount = inset_index * border_inset_step
 						color = border_configs[border_type]['color']
@@ -314,13 +315,13 @@ def draw_nested_grid_subplot(ax, cell_config: Dict, color_schema: Dict, cmap, vm
 ////////////////////////////////////////////////////////////
 '''
 def plot_gradient_grid(
-	cell_data: List[Dict[str, Any]],
+	subplot_data: List[Dict[str, Any]],
 	color_schema: Dict[float, str] = None,
 	rows: int = None,
 	cols: int = None,
 	max_rows: int = None,
 	max_cols: int = None,
-	figsize_per_cell: float = 4.0,
+	figsize_per_subplot: float = 4.0,
 	resolution: int = 500,
 	highlight_borders: Dict[str, Dict] = None,
 	show_values: bool = False,
@@ -328,9 +329,9 @@ def plot_gradient_grid(
 	suptitle: Dict[str, Any] = None,
 	copyright_text: str = None,
 ) -> Tuple:
-	"""Create grid plot with circular gradient visualization for each cell."""
-	if not cell_data or len(cell_data) == 0:
-		raise ValueError("cell_data cannot be empty")
+	"""Create grid plot with circular gradient visualization for each subplot."""
+	if not subplot_data or len(subplot_data) == 0:
+		raise ValueError("subplot_data cannot be empty")
 	if color_schema is None:
 		color_schema = DEFAULT_COLOR_SCHEMA
 	if highlight_borders is None:
@@ -338,56 +339,63 @@ def plot_gradient_grid(
 	enabled_borders = {k: v for k, v in highlight_borders.items() if v.get('enabled', False)}
 	if len(enabled_borders) > 4:
 		warnings.warn(f"More than 4 borders enabled ({len(enabled_borders)}). Visual clarity may be compromised. Proceeding anyway.")
-	num_cells = len(cell_data)
-	grid_rows, grid_cols = calculate_grid_layout(num_cells, rows=rows, cols=cols, max_rows=max_rows, max_cols=max_cols)
-	fig, axes = create_square_subplots(grid_rows, grid_cols, figsize_per_cell=figsize_per_cell)
+	num_subplots = len(subplot_data)
+	grid_rows, grid_cols = calculate_grid_layout(num_subplots, rows=rows, cols=cols, max_rows=max_rows, max_cols=max_cols)
+	fig, axes = create_square_subplots(grid_rows, grid_cols, figsize_per_subplot=figsize_per_subplot)
 	cmap, vmin, vmax = create_color_map(color_schema)
 	all_stats_grids = {}
-	for cell_idx, cell in enumerate(cell_data):
-		if 'grid_data' in cell:
-			stats_grids = compute_grid_statistics(cell['grid_data'])
-			all_stats_grids[cell_idx] = stats_grids
+	for subplot_idx, subplot_config in enumerate(subplot_data):
+		if 'grid_data' in subplot_config:
+			stats_grids = compute_grid_statistics(subplot_config['grid_data'])
+			all_stats_grids[subplot_idx] = stats_grids
 	# Filter out subplots marked for exclusion before finding global bests
 	grids_for_best_calc = {
 		idx: stats for idx, stats in all_stats_grids.items()
-		if not cell_data[idx].get('exclude_from_best', False)
+		if not subplot_data[idx].get('exclude_from_best', False)
 	}
-	global_bests = find_all_best_cells_global(grids_for_best_calc, highlight_borders)
-	cell_idx = 0
+	global_bests = find_global_best_grid_cells(grids_for_best_calc, highlight_borders)
+	subplot_idx = 0
 	for row in range(grid_rows):
 		for col in range(grid_cols):
 			ax = axes[row, col]
-			if cell_idx < num_cells:
-				cell = cell_data[cell_idx]
-				if 'grid_data' in cell:
-					stats_grids = all_stats_grids.get(cell_idx, {})
+			if subplot_idx < num_subplots:
+				subplot_config = subplot_data[subplot_idx]
+				if 'grid_data' in subplot_config:
+					stats_grids = all_stats_grids.get(subplot_idx, {})
 					# Only compute local bests if NOT excluded
-					if not cell.get('exclude_from_best', False):
-						local_bests = find_best_cells_in_grid(stats_grids, highlight_borders)
+					if not subplot_config.get('exclude_from_best', False):
+						local_bests = find_best_cells_in_subplot(stats_grids, highlight_borders)
 					else:
 						local_bests = {}
-					borders_for_cell = local_bests.copy()
-					for border_type, (subplot_idx, r_idx, c_idx) in global_bests.items():
-						if subplot_idx == cell_idx:
-							borders_for_cell[border_type] = (r_idx, c_idx)
-					draw_nested_grid_subplot(ax, cell, color_schema, cmap, vmin, vmax, resolution, show_values=show_values, bold_titles=bold_titles, borders_to_draw=borders_for_cell, border_configs=highlight_borders)
+					borders_for_subplot = local_bests.copy()
+					# Add global best borders if this subplot contains the global best
+					for border_type, (best_subplot_idx, r_idx, c_idx) in global_bests.items():
+						if best_subplot_idx == subplot_idx:
+							borders_for_subplot[border_type] = (r_idx, c_idx)
+					draw_nested_grid_subplot(
+						ax, subplot_config, color_schema, cmap, vmin, vmax, resolution, 
+						show_values=show_values, 
+						bold_titles=bold_titles, 
+						borders_to_draw=borders_for_subplot,
+						border_configs=highlight_borders
+					)
 				else:
-					data = cell.get('data')
+					data = subplot_config.get('data')
 					if data is None:
-						raise ValueError(f"Cell {cell_idx} missing required 'data' field")
-					cell_name = cell.get('title', f"Cell ({row},{col})")
-					validate_data_range(data, color_schema, cell_name)
+						raise ValueError(f"Subplot {subplot_idx} missing required 'data' field")		# ← Changed to "Subplot"
+					subplot_name = subplot_config.get('title', f"Subplot ({row},{col})")		# ← Changed "Cell" to "Subplot"
+					validate_data_range(data, color_schema, subplot_name)
 					gradient = create_circular_gradient(data, resolution=resolution)
 					im = ax.imshow(gradient, cmap=cmap, vmin=vmin, vmax=vmax, aspect='equal', origin='upper')
-					if 'title' in cell:
+					if 'title' in subplot_config:
 						title_kwargs = {'fontsize': 12}
 						if bold_titles:
 							title_kwargs['fontweight'] = 'bold'
-						ax.set_title(cell['title'], **title_kwargs)
-					if 'xlabel' in cell:
-						ax.set_xlabel(cell['xlabel'], fontsize=10)
-					if 'ylabel' in cell:
-						ax.set_ylabel(cell['ylabel'], fontsize=10)
+						ax.set_title(subplot_config['title'], **title_kwargs)
+					if 'xlabel' in subplot_config:
+						ax.set_xlabel(subplot_config['xlabel'], fontsize=10)
+					if 'ylabel' in subplot_config:
+						ax.set_ylabel(subplot_config['ylabel'], fontsize=10)
 					ax.set_xticks([])
 					ax.set_yticks([])
 					if show_values:
@@ -397,7 +405,7 @@ def plot_gradient_grid(
 							text_obj.set_path_effects([pe.Stroke(linewidth=3, foreground='black'), pe.Normal()])
 						except:
 							pass
-				cell_idx += 1
+				subplot_idx += 1
 			else:
 				ax.axis('off')
 	if suptitle:

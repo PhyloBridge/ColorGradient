@@ -26,24 +26,24 @@ def example1_basic_distributions():
 	"""Example 1: Compare different statistical distributions with blue to cyan schema"""
 	print(f"Example 1: Basic Distribution Comparison")
 	np.random.seed(42)
-	cell_data = [
+	subplot_data = [
 		{'data': np.random.normal(75, 10, 100), 'title': 'Normal Distribution\nnp.random.normal(75, 10, 100)'},
 		{'data': np.random.exponential(20, 80), 'title': 'Exponential Distribution\nnp.random.exponential(20, 80)'},
 		{'data': np.random.uniform(0, 100, 100), 'title': 'Uniform Distribution\nnp.random.uniform(0, 100, 100)'},
 		{'data': [10, 30, 50, 70, 90], 'title': 'Sparse Data\n[10, 30, 50, 70, 90]'}
 	]
 	fig, axes = plot_gradient_grid(
-					cell_data=cell_data,
-					color_schema=BLUE_CYAN_SCHEMA,
-					rows=2,
-					cols=2,
-					figsize_per_cell=4,
-					suptitle={
-						'title': 'Distribution Comparison',
-						'fontsize': 14,
-						'bold': True
-					}
-				)
+		subplot_data=subplot_data,
+		color_schema=BLUE_CYAN_SCHEMA,
+		rows=2,
+		cols=2,
+		figsize_per_subplot=4,
+		suptitle={
+			'title': 'Distribution Comparison',
+			'fontsize': 14,
+			'bold': True
+		}
+	)
 	# Move all subplots left to make room for colorbar
 	plt.subplots_adjust(right=0.82)
 	# Calculate proper colorbar position to match subplot heights
@@ -59,11 +59,14 @@ def example1_basic_distributions():
 	colormap = mcolors.LinearSegmentedColormap.from_list('darkblue_to_cyan', ['#1E3A8A', '#00FFFF'])
 	norm = mcolors.Normalize(vmin=0, vmax=100)
 	colorbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=colormap), cax=colorbar_axis)
-	colorbar.set_label('Performance Score', rotation=270, labelpad=20)
+	colorbar.set_label('Performance with respect to some metrics', rotation=270, labelpad=20)
 	# Saving
-	plt.savefig('example1_basic_distributions.svg', dpi=300, bbox_inches='tight', metadata={'Date': None})
+	output_dir = os.path.dirname(__file__)
+	plt.savefig(os.path.join(output_dir, 'example1_basic_distributions.svg'), dpi=300, bbox_inches='tight', metadata={'Date': None})
+	plt.savefig(os.path.join(output_dir, 'example1_basic_distributions.png'), dpi=300, bbox_inches='tight', metadata={'Software': None})
 	plt.close(fig)
 	print(f"-> Saved: example1_basic_distributions.svg")
+	print(f"-> Saved: example1_basic_distributions.png")
 
 def example2_hyperparameter_grid():
 	"""Example 2: Hyperparameter search grid (3x3) for a single model"""
@@ -77,7 +80,7 @@ def example2_hyperparameter_grid():
 			base_performance = 60 + epoch * 2 - learning_rate_index * 5
 			performance = np.random.normal(base_performance, 5 + learning_rate_index * 2, 50)
 			grid_data[(learning_rate_index, epoch_index)] = np.clip(performance, 0, 100)
-	cell_data = [{
+	subplot_data = [{
 		'grid_data': grid_data,
 		'title': 'Model Name',
 		'row_labels': [f'{lr:.0e}' for lr in learning_rates],
@@ -86,18 +89,20 @@ def example2_hyperparameter_grid():
 		'ylabel': 'Learning Rate'
 	}]
 	fig, axes = plot_gradient_grid(
-		cell_data,
+		subplot_data,
 		DEFAULT_COLOR_SCHEMA,
 		rows=1,
 		cols=1,
-		figsize_per_cell=6,
+		figsize_per_subplot=6,
 		show_values=True
 	)
 	fig.suptitle('Hyperparameter Grid with Value Annotations', fontsize=14)
 	output_directory = os.path.dirname(__file__)
 	plt.savefig(os.path.join(output_directory, 'example2_hyperparameter_grid.svg'), dpi=300, bbox_inches='tight', metadata={'Date': None})
+	plt.savefig(os.path.join(output_directory, 'example2_hyperparameter_grid.png'), dpi=300, bbox_inches='tight', metadata={'Software': None})
 	plt.close(fig)
 	print(f"-> Saved: example2_hyperparameter_grid.svg")
+	print(f"-> Saved: example2_hyperparameter_grid.png")
 
 if __name__ == '__main__':
 	print("=" * 60)
