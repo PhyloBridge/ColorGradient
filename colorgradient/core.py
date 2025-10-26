@@ -382,8 +382,8 @@ def plot_gradient_grid(
 				else:
 					data = subplot_config.get('data')
 					if data is None:
-						raise ValueError(f"Subplot {subplot_idx} missing required 'data' field")		# ← Changed to "Subplot"
-					subplot_name = subplot_config.get('title', f"Subplot ({row},{col})")		# ← Changed "Cell" to "Subplot"
+						raise ValueError(f"Subplot {subplot_idx} missing required 'data' field")
+					subplot_name = subplot_config.get('title', f"Subplot ({row},{col})")
 					validate_data_range(data, color_schema, subplot_name)
 					gradient = create_circular_gradient(data, resolution=resolution)
 					im = ax.imshow(gradient, cmap=cmap, vmin=vmin, vmax=vmax, aspect='equal', origin='upper')

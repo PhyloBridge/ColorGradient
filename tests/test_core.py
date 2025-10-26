@@ -164,7 +164,7 @@ class TestPhase3GridLayout(unittest.TestCase):
 		self.assertEqual(cols, 3)
 
 	def test_fixed_rows_cols_insufficient(self):
-		"""Test fixed grid too small for cells"""
+		"""Test fixed grid too small for subplots"""
 		with self.assertRaises(ValueError):
 			calculate_grid_layout(10, rows=2, cols=3)
 
